@@ -41,18 +41,18 @@ from nose.tools import assert_raises, assert_equal
 test_operator_key_1 = 'sklearn.feature_selection.SelectPercentile'
 test_operator_key_2 = 'sklearn.feature_selection.SelectFromModel'
 TPOTSelectPercentile, TPOTSelectPercentile_args = TPOTOperatorClassFactory(
-    test_operator_key_1,
-    classifier_config_dict[test_operator_key_1]
+	test_operator_key_1,
+	classifier_config_dict[test_operator_key_1]
 )
 
 TPOTSelectFromModel, TPOTSelectFromModel_args = TPOTOperatorClassFactory(
-    test_operator_key_2,
-    classifier_config_dict[test_operator_key_2]
+	test_operator_key_2,
+	classifier_config_dict[test_operator_key_2]
 )
 
 mnist_data = load_digits()
 training_features, testing_features, training_target, testing_target = \
-    train_test_split(mnist_data.data.astype(np.float64), mnist_data.target.astype(np.float64), random_state=42)
+	train_test_split(mnist_data.data.astype(np.float64), mnist_data.target.astype(np.float64), random_state=42)
 
 tpot_obj = TPOTClassifier()
 tpot_obj._fit_init()
@@ -60,13 +60,14 @@ tpot_obj._fit_init()
 tpot_obj_reg = TPOTRegressor()
 tpot_obj_reg._fit_init()
 
+
 def test_export_random_ind():
-    """Assert that the TPOTClassifier can generate the same pipeline export with random seed of 39."""
-    tpot_obj = TPOTClassifier(random_state=39)
-    tpot_obj._fit_init()
-    tpot_obj._pbar = tqdm(total=1, disable=True)
-    pipeline = tpot_obj._toolbox.individual()
-    expected_code = """import numpy as np
+	"""Assert that the TPOTClassifier can generate the same pipeline export with random seed of 39."""
+	tpot_obj = TPOTClassifier(random_state=39)
+	tpot_obj._fit_init()
+	tpot_obj._pbar = tqdm(total=1, disable=True)
+	pipeline = tpot_obj._toolbox.individual()
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectPercentile, f_classif
 from sklearn.model_selection import train_test_split
@@ -87,59 +88,61 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset, random_state=tpot_obj.random_state)
+	generated_code = export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset, random_state=tpot_obj.random_state)
+
+	assert expected_code == generated_code
 
 
 def test_export():
-    """Assert that TPOT's export function throws a RuntimeError when no optimized pipeline exists."""
-    assert_raises(RuntimeError, tpot_obj.export, "test_export.py")
-    pipeline_string = (
-        'KNeighborsClassifier(CombineDFs('
-        'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
-        'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
-        'DecisionTreeClassifier__min_samples_split=5), ZeroCount(input_matrix))'
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
-    )
+	"""Assert that TPOT's export function throws a RuntimeError when no optimized pipeline exists."""
+	assert_raises(RuntimeError, tpot_obj.export, "test_export.py")
+	pipeline_string = (
+		'KNeighborsClassifier(CombineDFs('
+		'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
+		'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
+		'DecisionTreeClassifier__min_samples_split=5), ZeroCount(input_matrix))'
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
+	)
 
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    tpot_obj._optimized_pipeline = pipeline
-    tpot_obj.export("test_export.py")
-    assert path.isfile("test_export.py")
-    remove("test_export.py") # clean up exported file
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	tpot_obj._optimized_pipeline = pipeline
+	tpot_obj.export("test_export.py")
+	assert path.isfile("test_export.py")
+	remove("test_export.py")  # clean up exported file
 
 
 def test_generate_pipeline_code():
-    """Assert that generate_pipeline_code() returns the correct code given a specific pipeline."""
+	"""Assert that generate_pipeline_code() returns the correct code given a specific pipeline."""
 
-    tpot_obj._fit_init()
-    pipeline = [
-        'KNeighborsClassifier',
-        [
-            'CombineDFs',
-            [
-                'GradientBoostingClassifier',
-                'input_matrix',
-                38.0,
-                5,
-                5,
-                5,
-                0.05,
-                0.5],
-            [
-                'GaussianNB',
-                [
-                    'ZeroCount',
-                    'input_matrix'
-                ]
-            ]
-        ],
-        18,
-        'uniform',
-        2
-    ]
+	tpot_obj._fit_init()
+	pipeline = [
+		'KNeighborsClassifier',
+		[
+			'CombineDFs',
+			[
+				'GradientBoostingClassifier',
+				'input_matrix',
+				38.0,
+				5,
+				5,
+				5,
+				0.05,
+				0.5],
+			[
+				'GaussianNB',
+				[
+					'ZeroCount',
+					'input_matrix'
+				]
+			]
+		],
+		18,
+		'uniform',
+		2
+	]
 
-    expected_code = """make_pipeline(
+	expected_code = """make_pipeline(
     make_union(
         StackingEstimator(estimator=GradientBoostingClassifier(learning_rate=38.0, max_depth=5, max_features=5, min_samples_leaf=5, min_samples_split=0.05, n_estimators=0.5)),
         StackingEstimator(estimator=make_pipeline(
@@ -149,45 +152,45 @@ def test_generate_pipeline_code():
     ),
     KNeighborsClassifier(n_neighbors=18, p="uniform", weights=2)
 )"""
-    assert expected_code == generate_pipeline_code(pipeline, tpot_obj.operators)
+	assert expected_code == generate_pipeline_code(pipeline, tpot_obj.operators)
 
 
 def test_generate_pipeline_code_2():
-    """Assert that generate_pipeline_code() returns the correct code given a specific pipeline with two CombineDFs."""
+	"""Assert that generate_pipeline_code() returns the correct code given a specific pipeline with two CombineDFs."""
 
-    pipeline = [
-        'KNeighborsClassifier',
-        [
-            'CombineDFs',
-            [
-                'GradientBoostingClassifier',
-                'input_matrix',
-                38.0,
-                5,
-                5,
-                5,
-                0.05,
-                0.5],
-            [
-                'CombineDFs',
-                [
-                    'MinMaxScaler',
-                    'input_matrix'
-                ],
-                ['ZeroCount',
-                    [
-                        'MaxAbsScaler',
-                        'input_matrix'
-                    ]
-                ]
-            ]
-        ],
-        18,
-        'uniform',
-        2
-    ]
+	pipeline = [
+		'KNeighborsClassifier',
+		[
+			'CombineDFs',
+			[
+				'GradientBoostingClassifier',
+				'input_matrix',
+				38.0,
+				5,
+				5,
+				5,
+				0.05,
+				0.5],
+			[
+				'CombineDFs',
+				[
+					'MinMaxScaler',
+					'input_matrix'
+				],
+				['ZeroCount',
+				 [
+					 'MaxAbsScaler',
+					 'input_matrix'
+				 ]
+				 ]
+			]
+		],
+		18,
+		'uniform',
+		2
+	]
 
-    expected_code = """make_pipeline(
+	expected_code = """make_pipeline(
     make_union(
         StackingEstimator(estimator=GradientBoostingClassifier(learning_rate=38.0, max_depth=5, max_features=5, min_samples_leaf=5, min_samples_split=0.05, n_estimators=0.5)),
         make_union(
@@ -201,39 +204,39 @@ def test_generate_pipeline_code_2():
     KNeighborsClassifier(n_neighbors=18, p="uniform", weights=2)
 )"""
 
-    assert expected_code == generate_pipeline_code(pipeline, tpot_obj.operators)
+	assert expected_code == generate_pipeline_code(pipeline, tpot_obj.operators, )
 
 
 def test_generate_import_code():
-    """Assert that generate_import_code() returns the correct set of dependancies for a given pipeline."""
+	"""Assert that generate_import_code() returns the correct set of dependancies for a given pipeline."""
 
-    pipeline = creator.Individual.from_string('GaussianNB(RobustScaler(input_matrix))', tpot_obj._pset)
+	pipeline = creator.Individual.from_string('GaussianNB(RobustScaler(input_matrix))', tpot_obj._pset)
 
-    expected_code = """import numpy as np
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import RobustScaler
 """
-    assert expected_code == generate_import_code(pipeline, tpot_obj.operators)
+	assert expected_code == generate_import_code(pipeline, tpot_obj.operators)
 
 
 def test_generate_import_code_2():
-    """Assert that generate_import_code() returns the correct set of dependancies and dependancies are importable."""
+	"""Assert that generate_import_code() returns the correct set of dependancies and dependancies are importable."""
 
-    pipeline_string = (
-        'KNeighborsClassifier(CombineDFs('
-        'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
-        'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
-        'DecisionTreeClassifier__min_samples_split=5), ZeroCount(input_matrix))'
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
-    )
+	pipeline_string = (
+		'KNeighborsClassifier(CombineDFs('
+		'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
+		'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
+		'DecisionTreeClassifier__min_samples_split=5), ZeroCount(input_matrix))'
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
+	)
 
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    import_code = generate_import_code(pipeline, tpot_obj.operators)
-    expected_code = """import numpy as np
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	import_code = generate_import_code(pipeline, tpot_obj.operators)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -241,45 +244,45 @@ from sklearn.pipeline import make_pipeline, make_union
 from sklearn.tree import DecisionTreeClassifier
 from tpot.builtins import StackingEstimator, ZeroCount
 """
-    exec(import_code)  # should not raise error
-    assert expected_code == import_code
+	exec(import_code)  # should not raise error
+	assert expected_code == import_code
 
 
 def test_operators():
-    """Assert that the TPOT operators match the output of their sklearn counterparts."""
-    for op in tpot_obj.operators:
-        check_export.description = ("Assert that the TPOT {} operator exports "
-                                    "as expected".format(op.__name__))
-        yield check_export, op, tpot_obj
+	"""Assert that the TPOT operators match the output of their sklearn counterparts."""
+	for op in tpot_obj.operators:
+		check_export.description = ("Assert that the TPOT {} operator exports "
+									"as expected".format(op.__name__))
+		yield check_export, op, tpot_obj
 
 
 def check_export(op, tpot_obj):
-    """Assert that a TPOT operator exports as a class constructor."""
-    prng = np.random.RandomState(42)
-    np.random.seed(42)
+	"""Assert that a TPOT operator exports as a class constructor."""
+	prng = np.random.RandomState(42)
+	np.random.seed(42)
 
-    args = []
-    for type_ in op.parameter_types()[0][1:]:
-        args.append(prng.choice(tpot_obj._pset.terminals[type_]).value)
-    export_string = op.export(*args)
+	args = []
+	for type_ in op.parameter_types()[0][1:]:
+		args.append(prng.choice(tpot_obj._pset.terminals[type_]).value)
+	export_string = op.export(*args)
 
-    assert export_string.startswith(op.__name__ + "(") and export_string.endswith(")")
+	assert export_string.startswith(op.__name__ + "(") and export_string.endswith(")")
 
 
 def test_export_pipeline():
-    """Assert that exported_pipeline() generated a compile source file as expected given a fixed pipeline."""
+	"""Assert that exported_pipeline() generated a compile source file as expected given a fixed pipeline."""
 
-    pipeline_string = (
-        'KNeighborsClassifier(CombineDFs('
-        'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
-        'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
-        'DecisionTreeClassifier__min_samples_split=5),SelectPercentile(input_matrix, SelectPercentile__percentile=20))'
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
-    )
+	pipeline_string = (
+		'KNeighborsClassifier(CombineDFs('
+		'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
+		'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
+		'DecisionTreeClassifier__min_samples_split=5),SelectPercentile(input_matrix, SelectPercentile__percentile=20))'
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
+	)
 
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    expected_code = """import numpy as np
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectPercentile, f_classif
 from sklearn.model_selection import train_test_split
@@ -305,22 +308,22 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
+	assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
 
 
 def test_export_pipeline_2():
-    """Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline (only one classifier)."""
+	"""Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline (only one classifier)."""
 
-    pipeline_string = (
-        'KNeighborsClassifier('
-        'input_matrix, '
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1, '
-        'KNeighborsClassifier__weights=uniform'
-        ')'
-    )
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    expected_code = """import numpy as np
+	pipeline_string = (
+		'KNeighborsClassifier('
+		'input_matrix, '
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1, '
+		'KNeighborsClassifier__weights=uniform'
+		')'
+	)
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -336,20 +339,20 @@ exported_pipeline = KNeighborsClassifier(n_neighbors=10, p=1, weights="uniform")
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
+	assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
 
 
 def test_export_pipeline_3():
-    """Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with a preprocessor."""
+	"""Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with a preprocessor."""
 
-    pipeline_string = (
-        'DecisionTreeClassifier(SelectPercentile(input_matrix, SelectPercentile__percentile=20),'
-        'DecisionTreeClassifier__criterion=gini, DecisionTreeClassifier__max_depth=8,'
-        'DecisionTreeClassifier__min_samples_leaf=5, DecisionTreeClassifier__min_samples_split=5)'
-    )
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	pipeline_string = (
+		'DecisionTreeClassifier(SelectPercentile(input_matrix, SelectPercentile__percentile=20),'
+		'DecisionTreeClassifier__criterion=gini, DecisionTreeClassifier__max_depth=8,'
+		'DecisionTreeClassifier__min_samples_leaf=5, DecisionTreeClassifier__min_samples_split=5)'
+	)
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
 
-    expected_code = """import numpy as np
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectPercentile, f_classif
 from sklearn.model_selection import train_test_split
@@ -370,23 +373,23 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
+	assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
 
 
 def test_export_pipeline_4():
-    """Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with input_matrix in CombineDFs."""
+	"""Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with input_matrix in CombineDFs."""
 
-    pipeline_string = (
-        'KNeighborsClassifier(CombineDFs('
-        'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
-        'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
-        'DecisionTreeClassifier__min_samples_split=5),input_matrix)'
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
-    )
+	pipeline_string = (
+		'KNeighborsClassifier(CombineDFs('
+		'DecisionTreeClassifier(input_matrix, DecisionTreeClassifier__criterion=gini, '
+		'DecisionTreeClassifier__max_depth=8,DecisionTreeClassifier__min_samples_leaf=5,'
+		'DecisionTreeClassifier__min_samples_split=5),input_matrix)'
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1,KNeighborsClassifier__weights=uniform'
+	)
 
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    expected_code = """import numpy as np
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -413,19 +416,19 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
+	assert expected_code == export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset)
 
 
 def test_export_pipeline_5():
-    """Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with SelectFromModel."""
-    pipeline_string = (
-        'DecisionTreeRegressor(SelectFromModel(input_matrix, '
-        'SelectFromModel__ExtraTreesRegressor__max_features=0.05, SelectFromModel__ExtraTreesRegressor__n_estimators=100, '
-        'SelectFromModel__threshold=0.05), DecisionTreeRegressor__max_depth=8,'
-        'DecisionTreeRegressor__min_samples_leaf=5, DecisionTreeRegressor__min_samples_split=5)'
-    )
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj_reg._pset)
-    expected_code = """import numpy as np
+	"""Assert that exported_pipeline() generated a compile source file as expected given a fixed simple pipeline with SelectFromModel."""
+	pipeline_string = (
+		'DecisionTreeRegressor(SelectFromModel(input_matrix, '
+		'SelectFromModel__ExtraTreesRegressor__max_features=0.05, SelectFromModel__ExtraTreesRegressor__n_estimators=100, '
+		'SelectFromModel__threshold=0.05), DecisionTreeRegressor__max_depth=8,'
+		'DecisionTreeRegressor__min_samples_leaf=5, DecisionTreeRegressor__min_samples_split=5)'
+	)
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj_reg._pset)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.feature_selection import SelectFromModel
@@ -447,78 +450,77 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert expected_code == export_pipeline(pipeline, tpot_obj_reg.operators, tpot_obj_reg._pset)
+	assert expected_code == export_pipeline(pipeline, tpot_obj_reg.operators, tpot_obj_reg._pset)
 
 
 def test_operator_export():
-    """Assert that a TPOT operator can export properly with a callable function as a parameter."""
-    assert list(TPOTSelectPercentile.arg_types) == TPOTSelectPercentile_args
-    export_string = TPOTSelectPercentile.export(5)
-    assert export_string == "SelectPercentile(score_func=f_classif, percentile=5)"
+	"""Assert that a TPOT operator can export properly with a callable function as a parameter."""
+	assert list(TPOTSelectPercentile.arg_types) == TPOTSelectPercentile_args
+	export_string = TPOTSelectPercentile.export(5)
+	assert export_string == "SelectPercentile(score_func=f_classif, percentile=5)"
 
 
 def test_operator_export_2():
-    """Assert that a TPOT operator can export properly with a BaseEstimator as a parameter."""
-    assert list(TPOTSelectFromModel.arg_types) == TPOTSelectFromModel_args
-    export_string = TPOTSelectFromModel.export('gini', 0.10, 100, 0.10)
-    expected_string = ("SelectFromModel(estimator=ExtraTreesClassifier(criterion=\"gini\","
-        " max_features=0.1, n_estimators=100), threshold=0.1)")
-    print(export_string)
-    assert export_string == expected_string
+	"""Assert that a TPOT operator can export properly with a BaseEstimator as a parameter."""
+	assert list(TPOTSelectFromModel.arg_types) == TPOTSelectFromModel_args
+	export_string = TPOTSelectFromModel.export('gini', 0.10, 100, 0.10)
+	expected_string = ("SelectFromModel(estimator=ExtraTreesClassifier(criterion=\"gini\","
+					   " max_features=0.1, n_estimators=100), threshold=0.1)")
+	assert export_string == expected_string
 
 
 def test_get_by_name():
-    """Assert that the Operator class returns operators by name appropriately."""
+	"""Assert that the Operator class returns operators by name appropriately."""
 
-    assert get_by_name("SelectPercentile", tpot_obj.operators).__class__ == TPOTSelectPercentile.__class__
-    assert get_by_name("SelectFromModel", tpot_obj.operators).__class__ == TPOTSelectFromModel.__class__
+	assert get_by_name("SelectPercentile", tpot_obj.operators).__class__ == TPOTSelectPercentile.__class__
+	assert get_by_name("SelectFromModel", tpot_obj.operators).__class__ == TPOTSelectFromModel.__class__
 
 
 def test_get_by_name_2():
-    """Assert that get_by_name raises TypeError with a incorrect operator name."""
+	"""Assert that get_by_name raises TypeError with a incorrect operator name."""
 
-    assert_raises(TypeError, get_by_name, "RandomForestRegressor", tpot_obj.operators)
-    # use correct name
-    ret_op_class = get_by_name("RandomForestClassifier", tpot_obj.operators)
+	assert_raises(TypeError, get_by_name, "RandomForestRegressor", tpot_obj.operators)
+	# use correct name
+	ret_op_class = get_by_name("RandomForestClassifier", tpot_obj.operators)
 
 
 def test_get_by_name_3():
-    """Assert that get_by_name raises ValueError with duplicate operators in operator dictionary."""
+	"""Assert that get_by_name raises ValueError with duplicate operators in operator dictionary."""
 
-    # no duplicate
-    ret_op_class = get_by_name("SelectPercentile", tpot_obj.operators)
-    # add a copy of TPOTSelectPercentile into operator list
-    tpot_obj.operators.append(TPOTSelectPercentile)
-    assert_raises(ValueError, get_by_name, "SelectPercentile", tpot_obj.operators)
+	# no duplicate
+	ret_op_class = get_by_name("SelectPercentile", tpot_obj.operators)
+	# add a copy of TPOTSelectPercentile into operator list
+	tpot_obj.operators.append(TPOTSelectPercentile)
+	assert_raises(ValueError, get_by_name, "SelectPercentile", tpot_obj.operators)
 
 
 def test_indent():
-    """Assert that indenting a multiline string by 4 spaces prepends 4 spaces before each new line."""
-    multiline_string = """test
+	"""Assert that indenting a multiline string by 4 spaces prepends 4 spaces before each new line."""
+	multiline_string = """test
 test1
 test2
 test3"""
 
-    indented_multiline_string = """    test
+	indented_multiline_string = """    test
     test1
     test2
     test3"""
 
-    assert indented_multiline_string == _indent(multiline_string, 4)
+	assert indented_multiline_string == _indent(multiline_string, 4)
 
 
 def test_pipeline_score_save():
-    """Assert that the TPOTClassifier can generate a scored pipeline export correctly."""
-    tpot_obj = TPOTClassifier()
-    tpot_obj._fit_init()
-    tpot_obj._pbar = tqdm(total=1, disable=True)
-    pipeline_string = (
-        'DecisionTreeClassifier(SelectPercentile(input_matrix, SelectPercentile__percentile=20),'
-        'DecisionTreeClassifier__criterion=gini, DecisionTreeClassifier__max_depth=8,'
-        'DecisionTreeClassifier__min_samples_leaf=5, DecisionTreeClassifier__min_samples_split=5)'
-    )
-    pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
-    expected_code = """import numpy as np
+	"""Assert that the TPOTClassifier can generate a scored pipeline export correctly."""
+	tpot_obj = TPOTClassifier()
+	tpot_obj._fit_init()
+	tpot_obj._pbar = tqdm(total=1, disable=True)
+	pipeline_string = (
+		'DecisionTreeClassifier(SelectPercentile(input_matrix, SelectPercentile__percentile=20),'
+		'DecisionTreeClassifier__criterion=gini, DecisionTreeClassifier__max_depth=8,'
+		'DecisionTreeClassifier__min_samples_leaf=5, DecisionTreeClassifier__min_samples_split=5)'
+	)
+	pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.feature_selection import SelectPercentile, f_classif
 from sklearn.model_selection import train_test_split
@@ -540,37 +542,39 @@ exported_pipeline = make_pipeline(
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
-    assert_equal(expected_code, export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset, pipeline_score=0.929813743))
+	assert_equal(expected_code,
+				 export_pipeline(pipeline, tpot_obj.operators, tpot_obj._pset, pipeline_score=0.929813743))
 
 
 def test_imputer_in_export():
-    """Assert that TPOT exports a pipeline with an imputation step if imputation was used in fit()."""
-    tpot_obj = TPOTClassifier(
-        random_state=42,
-        population_size=1,
-        offspring_size=2,
-        generations=1,
-        verbosity=0,
-        config_dict='TPOT light'
-    )
-    features_with_nan = np.copy(training_features)
-    features_with_nan[0][0] = float('nan')
+	"""Assert that TPOT exports a pipeline with an imputation step if imputation was used in fit()."""
+	tpot_obj = TPOTClassifier(
+		random_state=42,
+		population_size=1,
+		offspring_size=2,
+		generations=1,
+		verbosity=0,
+		config_dict='TPOT light'
+	)
+	features_with_nan = np.copy(training_features)
+	features_with_nan[0][0] = float('nan')
 
-    tpot_obj.fit(features_with_nan, training_target)
-    # use fixed pipeline since the random.seed() performs differently in python 2.* and 3.*
-    pipeline_string = (
-        'KNeighborsClassifier('
-        'input_matrix, '
-        'KNeighborsClassifier__n_neighbors=10, '
-        'KNeighborsClassifier__p=1, '
-        'KNeighborsClassifier__weights=uniform'
-        ')'
-    )
-    tpot_obj._optimized_pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
+	tpot_obj.fit(features_with_nan, training_target)
+	# use fixed pipeline since the random.seed() performs differently in python 2.* and 3.*
+	pipeline_string = (
+		'KNeighborsClassifier('
+		'input_matrix, '
+		'KNeighborsClassifier__n_neighbors=10, '
+		'KNeighborsClassifier__p=1, '
+		'KNeighborsClassifier__weights=uniform'
+		')'
+	)
+	tpot_obj._optimized_pipeline = creator.Individual.from_string(pipeline_string, tpot_obj._pset)
 
-    export_code = export_pipeline(tpot_obj._optimized_pipeline, tpot_obj.operators, tpot_obj._pset, tpot_obj._imputed)
+	export_code = export_pipeline(tpot_obj._optimized_pipeline, tpot_obj.operators, tpot_obj._pset,
+								  impute=tpot_obj._imputed)
 
-    expected_code = """import numpy as np
+	expected_code = """import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
@@ -593,4 +597,4 @@ exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
 
-    assert_equal(export_code, expected_code)
+	assert_equal(export_code, expected_code)

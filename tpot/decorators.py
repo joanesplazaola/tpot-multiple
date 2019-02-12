@@ -29,6 +29,7 @@ import warnings
 from sklearn.datasets import make_classification, make_regression
 from .export_utils import expr_to_tree, generate_pipeline_code
 from deap import creator
+from .builtins import Mode
 
 NUM_TESTS = 10
 
@@ -36,67 +37,77 @@ NUM_TESTS = 10
 # has unsuppported combinations in params
 pretest_X, pretest_y = make_classification(n_samples=50, n_features=10, random_state=42)
 pretest_X_reg, pretest_y_reg = make_regression(n_samples=50, n_features=10, random_state=42)
+pretest_X_reg_multi, pretest_y_reg_multi = make_regression(n_samples=50, n_features=10, n_targets=2, random_state=42)
 
 
 def _pre_test(func):
-    """Check if the wrapped function works with a pretest data set.
+	"""Check if the wrapped function works with a pretest data set.
 
-    Reruns the wrapped function until it generates a good pipeline, for a max of
-    NUM_TESTS times.
+	Reruns the wrapped function until it generates a good pipeline, for a max of
+	NUM_TESTS times.
 
-    Parameters
-    ----------
-    func: function
-        The decorated function.
+	Parameters
+	----------
+	func: function
+		The decorated function.
 
-    Returns
-    -------
-    check_pipeline: function
-        A wrapper function around the func parameter
-    """
-    @wraps(func)
-    def check_pipeline(self, *args, **kwargs):
-        bad_pipeline = True
-        num_test = 0  # number of tests
+	Returns
+	-------
+	check_pipeline: function
+		A wrapper function around the func parameter
+	"""
 
-        # a pool for workable pipeline
-        while bad_pipeline and num_test < NUM_TESTS:
-            # clone individual before each func call so it is not altered for
-            # the possible next cycle loop
-            args = [self._toolbox.clone(arg) if isinstance(arg, creator.Individual) else arg for arg in args]
+	@wraps(func)
+	def check_pipeline(self, *args, **kwargs):
+		bad_pipeline = True
+		num_test = 0  # number of tests
 
-            try:
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
+		# a pool for workable pipeline
+		while bad_pipeline and num_test < NUM_TESTS:
+			# clone individual before each func call so it is not altered for
+			# the possible next cycle loop
+			args = [self._toolbox.clone(arg) if isinstance(arg, creator.Individual) else arg for arg in args]
 
-                    expr = func(self, *args, **kwargs)
-                    # mutation operator returns tuple (ind,); crossover operator
-                    # returns tuple of (ind1, ind2)
-                    expr_tuple = expr if isinstance(expr, tuple) else (expr,)
+			try:
+				with warnings.catch_warnings():
+					warnings.simplefilter('ignore')
 
-                    for expr_test in expr_tuple:
-                        pipeline_code = generate_pipeline_code(
-                            expr_to_tree(expr_test, self._pset),
-                            self.operators
-                        )
-                        sklearn_pipeline = eval(pipeline_code, self.operators_context)
+					expr = func(self, *args, **kwargs)
+					# mutation operator returns tuple (ind,); crossover operator
+					# returns tuple of (ind1, ind2)
+					expr_tuple = expr if isinstance(expr, tuple) else (expr,)
 
-                        if self.classification:
-                            sklearn_pipeline.fit(pretest_X, pretest_y)
-                        else:
-                            sklearn_pipeline.fit(pretest_X_reg, pretest_y_reg)
-                        bad_pipeline = False
-            except BaseException as e:
-                message = '_pre_test decorator: {fname}: num_test={n} {e}'.format(
-                    n=num_test,
-                    fname=func.__name__,
-                    e=e
-                )
-                # Use the pbar output stream if it's active
-                self._update_pbar(pbar_num=0, pbar_msg=message)
-            finally:
-                num_test += 1
+					for expr_test in expr_tuple:
+						pipeline_code = generate_pipeline_code(
+							expr_to_tree(expr_test, self._pset),
+							self.operators,
+							self.mode,
+							self.multi_output
+						)
+						sklearn_pipeline = eval(pipeline_code, self.operators_context)
 
-        return expr
+						if self.mode == Mode.CLASSIFIER:
+							sklearn_pipeline.fit(pretest_X, pretest_y)
+						elif self.mode == Mode.REGRESSOR:
+							if self.multi_output:
+								sklearn_pipeline.fit(pretest_X_reg_multi, pretest_y_reg_multi)
+							else:
+								sklearn_pipeline.fit(pretest_X_reg, pretest_y_reg)
+						elif self.mode == Mode.NOVELTY_DETECTOR:
+							sklearn_pipeline.fit(pretest_X_reg, pretest_y_reg)
 
-    return check_pipeline
+						bad_pipeline = False
+			except BaseException as e:
+				message = '_pre_test decorator: {fname}: num_test={n} {e}'.format(
+					n=num_test,
+					fname=func.__name__,
+					e=e
+				)
+				# Use the pbar output stream if it's active
+				self._update_pbar(pbar_num=0, pbar_msg=message)
+			finally:
+				num_test += 1
+
+		return expr
+
+	return check_pipeline

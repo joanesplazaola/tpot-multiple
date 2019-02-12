@@ -22,33 +22,14 @@ You should have received a copy of the GNU Lesser General Public
 License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 
 """
-
-from .base import TPOTBase
-from .config.classifier import classifier_config_dict
-from .config.regressor import regressor_config_dict
-from .builtins.constants import Mode
+from enum import Enum
 
 
-class TPOTClassifier(TPOTBase):
-	"""TPOT estimator for classification problems."""
-
-	scoring_function = 'accuracy'
-	default_config_dict = classifier_config_dict
-	mode = Mode.CLASSIFIER
-
-
-class TPOTRegressor(TPOTBase):
-	"""TPOT estimator for regression problems."""
-
-	scoring_function = 'neg_mean_squared_error'
-	default_config_dict = regressor_config_dict
-	mode = Mode.REGRESSOR
-
-
-class TPOTNoveltyDetector(TPOTBase):
-	"""TPOT estimator for novelty detection"""
-
-	scoring_function = 'f_2'
-	mode = Mode.NOVELTY_DETECTOR
-	default_config_dict = anomaly_detector_config_dict
-
+class Mode(Enum):
+	'''
+	This is the enumeration used to identify the type of task.
+	'''
+	CLASSIFIER = 1
+	REGRESSOR = 2
+	NOVELTY_DETECTOR = 3
+# TIME_SERIES = 4
