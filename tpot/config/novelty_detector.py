@@ -27,10 +27,15 @@ import numpy as np
 
 # Check the TPOT documentation for information on the structure of config dicts
 
-anomaly_detector_config_dict = {
+novelty_detector_config_dict = {
 
 	# Anomaly detectors
+
 	'sklearn.ensemble.IsolationForest': {
+		'n_estimators': [100],
+		'max_features': np.arange(0.05, 1.01, 0.05),
+
+		'bootstrap': [True, False]
 	},
 	'sklearn.covariance.EllipticEnvelope': {
 	},
@@ -39,8 +44,13 @@ anomaly_detector_config_dict = {
 
 		'gamma': np.logspace(-3, 2, 6),
 		'nu': np.linspace(0.01, 1, 5),
-		'kernel': ['rbf', 'sigmoid', 'linear'],
+		'kernel': ['rbf', 'sigmoid', 'linear', 'poly'],
 
+	},
+	'sklearn.neighbors.LocalOutlierFactor': {
+		'novelty': [True],
+		'n_neighbors': [5, 10, 20, 25],
+		'algorithm': ['ball_tree', 'kd_tree', 'auto']
 	},
 
 	# Preprocesssors

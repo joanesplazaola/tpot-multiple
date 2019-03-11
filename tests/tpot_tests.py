@@ -553,9 +553,9 @@ def test_score_3():
 
 	# Get score from TPOT
 	score = tpot_obj.score(testing_features_r, testing_target_r)
+	print(known_score, ' vs ',  score)
 
 	assert np.allclose(known_score, score)
-
 
 def test_sample_weight_func():
 	"""Assert that the TPOTRegressor score function outputs a known score for a fixed pipeline with sample weights."""
@@ -604,6 +604,8 @@ def test_sample_weight_func():
 
 	assert np.allclose(cv_score1, cv_score2)
 	assert not np.allclose(cv_score1, cv_score_weight)
+	print(known_score, ' vs ',  score)
+
 	assert np.allclose(known_score, score)
 
 
@@ -1336,7 +1338,7 @@ def test_evaluate_individuals():
 
 	tpot_obj._pbar = tqdm(total=1, disable=True)
 	pop = tpot_obj._toolbox.population(n=10)
-	fitness_scores = tpot_obj._evaluate_individuals(pop, training_features, training_target)
+	fitness_scores = tpot_obj._evaluate_individuals(pop, training_features, training_target,func=_wrapped_cross_val_score)
 
 	for deap_pipeline, fitness_score in zip(pop, fitness_scores):
 		operator_count = tpot_obj._operator_count(deap_pipeline)
@@ -1367,7 +1369,7 @@ def test_evaluate_individuals_2():
 
 	tpot_obj._pbar = tqdm(total=1, disable=True)
 	pop = tpot_obj._toolbox.population(n=10)
-	fitness_scores = tpot_obj._evaluate_individuals(pop, training_features, training_target)
+	fitness_scores = tpot_obj._evaluate_individuals(pop, training_features, training_target, func=_wrapped_cross_val_score)
 
 	for deap_pipeline, fitness_score in zip(pop, fitness_scores):
 		operator_count = tpot_obj._operator_count(deap_pipeline)
@@ -1815,7 +1817,7 @@ def test_tpot_operator_factory_class():
 	assert len(tpot_argument_list) == 9
 	assert tpot_operator_list[0].root is True
 	assert tpot_operator_list[1].root is False
-	assert tpot_operator_list[2].type() == "Classifier or Regressor"
+	assert tpot_operator_list[2].type() == "Classifier or Regressor or Outlier"
 	assert tpot_argument_list[1].values == [True, False]
 
 
@@ -1849,7 +1851,7 @@ def test_PolynomialFeatures_exception():
 	for pipeline in pipelines:
 		initialize_stats_dict(pipeline)
 
-	fitness_scores = tpot_obj._evaluate_individuals(pipelines, pretest_X, pretest_y)
+	fitness_scores = tpot_obj._evaluate_individuals(pipelines, pretest_X, pretest_y, func=_wrapped_cross_val_score)
 	known_scores = [(2, 0.94000000000000006), (5000.0, -float('inf'))]
 	assert np.allclose(known_scores, fitness_scores)
 

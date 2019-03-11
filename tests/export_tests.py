@@ -576,9 +576,9 @@ def test_imputer_in_export():
 
 	expected_code = """import numpy as np
 import pandas as pd
+from sklearn.impute import SimpleImputer as Imputer
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import Imputer
 
 # NOTE: Make sure that the class is labeled 'target' in the data file
 tpot_data = pd.read_csv('PATH/TO/DATA/FILE', sep='COLUMN_SEPARATOR', dtype=np.float64)
@@ -596,5 +596,8 @@ exported_pipeline = KNeighborsClassifier(n_neighbors=10, p=1, weights="uniform")
 exported_pipeline.fit(training_features, training_target)
 results = exported_pipeline.predict(testing_features)
 """
+
+	print(export_code, '\n\n')
+	print(expected_code, '\n\n')
 
 	assert_equal(export_code, expected_code)

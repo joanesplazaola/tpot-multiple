@@ -101,5 +101,7 @@ def test_StackingEstimator_4():
     # test cv score
     cv_score = np.mean(cross_val_score(sklearn_pipeline, training_features_r, training_target_r, cv=3, scoring='r2'))
     known_cv_score = 0.795877470354
+    print(known_cv_score, ' vs ', cv_score)
+
 
     assert np.allclose(known_cv_score, cv_score)

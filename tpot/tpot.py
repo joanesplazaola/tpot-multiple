@@ -26,6 +26,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 from .base import TPOTBase
 from .config.classifier import classifier_config_dict
 from .config.regressor import regressor_config_dict
+from .config.novelty_detector import novelty_detector_config_dict
 from .builtins.constants import Mode
 
 
@@ -48,7 +49,6 @@ class TPOTRegressor(TPOTBase):
 class TPOTNoveltyDetector(TPOTBase):
 	"""TPOT estimator for novelty detection"""
 
-	scoring_function = 'f_2'
+	scoring_function = 'roc_auc_score'
 	mode = Mode.NOVELTY_DETECTOR
-	default_config_dict = anomaly_detector_config_dict
-
+	default_config_dict = novelty_detector_config_dict

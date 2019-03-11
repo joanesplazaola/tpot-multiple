@@ -192,7 +192,7 @@ def generate_import_code(pipeline, operators, mode=None, impute=False, multi_out
 
 	# Add the imputer if necessary
 	if impute:
-		pipeline_imports['sklearn.preprocessing'] = ['Imputer']
+		pipeline_imports['sklearn.impute'] = ['SimpleImputer as Imputer']
 
 	if multi_output:
 		pipeline_imports['sklearn.multioutput'] = ['MultiOutput{}'.format(mode.name.capitalize())]

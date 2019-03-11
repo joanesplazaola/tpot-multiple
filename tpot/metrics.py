@@ -24,7 +24,7 @@ License along with TPOT. If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy as np
-from sklearn.metrics import make_scorer, SCORERS, fbeta_score
+from sklearn.metrics import make_scorer, SCORERS, roc_auc_score
 
 
 def balanced_accuracy(y_true, y_pred):
@@ -74,4 +74,6 @@ def anomaly_detection_score():
 
 SCORERS['balanced_accuracy'] = make_scorer(balanced_accuracy)
 
-SCORERS['f_2'] = make_scorer(fbeta_score, beta=2)
+# Need to set needs_proba to False, as many outlier detection algorithms do not have predict_proba
+
+SCORERS['roc_auc_score'] = make_scorer(roc_auc_score, needs_proba=False)

@@ -49,7 +49,8 @@ from sklearn.base import BaseEstimator
 from sklearn.utils import check_X_y, check_consistent_length, check_array
 from sklearn.externals.joblib import Parallel, delayed, Memory
 from sklearn.pipeline import make_pipeline, make_union
-from sklearn.preprocessing import FunctionTransformer, Imputer
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.impute import SimpleImputer as Imputer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.scorer import make_scorer, _BaseScorer
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
@@ -71,7 +72,8 @@ from .config.classifier_sparse import classifier_config_sparse
 
 from .metrics import SCORERS
 from .gp_types import Output_Array
-from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_score, cxOnePoint
+from .gp_deap import eaMuPlusLambda, mutNodeReplacement, _wrapped_cross_val_score, cxOnePoint, \
+	_wrapped_cross_val_score_ad
 
 # hot patch for Windows: solve the problem of crashing python after Ctrl + C in Windows OS
 # https://github.com/ContinuumIO/anaconda-issues/issues/905
@@ -544,7 +546,7 @@ class TPOTBase(BaseEstimator):
 		self._setup_pset()
 		self._setup_toolbox()
 
-	def fit(self, features, target, sample_weight=None, groups=None):
+	def fit(self, features, target=None, sample_weight=None, groups=None, features_valid=None, target_valid=None):
 		"""Fit an optimized machine learning pipeline.
 
 		Uses genetic programming to optimize a machine learning pipeline that
@@ -564,7 +566,7 @@ class TPOTBase(BaseEstimator):
 
 			If you wish to use a different imputation strategy than median imputation, please
 			make sure to apply imputation to your feature set prior to passing it to TPOT.
-		target: array-like {n_samples, n_targets}
+		target: array-like {n_samples, n_targets} optional
 			Target matrix or list.
 		sample_weight: array-like {n_samples}, optional
 			Per-sample weights. Higher weights indicate more importance. If specified,
@@ -584,6 +586,14 @@ class TPOTBase(BaseEstimator):
 		"""
 		self._fit_init()
 
+		if self.mode in [Mode.REGRESSOR, Mode.CLASSIFIER]:  # We do not have targets
+
+			func = _wrapped_cross_val_score
+
+		elif self.mode in [Mode.NOVELTY_DETECTOR]:
+			target = np.ones(features.shape[0])  # We set all the targets to one, meaning they are not anomalies
+			func = _wrapped_cross_val_score_ad
+
 		features, target = self._check_dataset(features, target, sample_weight, self.multi_output)
 
 		# Randomly collect a subsample of training samples for pipeline optimization process.
@@ -598,7 +608,6 @@ class TPOTBase(BaseEstimator):
 					'score in pipeline optimization process. Increasing subsample ratio may get '
 					'a more reasonable outcome from optimization process in TPOT.'
 				)
-
 		# Set the seed for the GP run
 		if self.random_state is not None:
 			random.seed(self.random_state)  # deap uses random
@@ -606,8 +615,9 @@ class TPOTBase(BaseEstimator):
 
 		self._start_datetime = datetime.now()
 		self._last_pipeline_write = self._start_datetime
-		self._toolbox.register('evaluate', self._evaluate_individuals, features=features, target=target,
-							   sample_weight=sample_weight, groups=groups)
+		self._toolbox.register('evaluate', self._evaluate_individuals, features=features, target=target, func=func,
+							   sample_weight=sample_weight, groups=groups, features_valid=features_valid,
+							   target_valid=target_valid)
 
 		# assign population, self._pop can only be not None if warm_start is enabled
 		if self._pop:
@@ -1177,7 +1187,8 @@ class TPOTBase(BaseEstimator):
 		stats['internal_cv_score'] = cv_score
 		return stats
 
-	def _evaluate_individuals(self, individuals, features, target, sample_weight=None, groups=None):
+	def _evaluate_individuals(self, individuals, features, target, func, sample_weight=None, groups=None,
+							  features_valid=None, target_valid=None):
 		"""Determine the fit of the provided individuals.
 
 		Parameters
@@ -1207,7 +1218,7 @@ class TPOTBase(BaseEstimator):
 
 		# Make the partial function that will be called below
 		partial_wrapped_cross_val_score = partial(
-			_wrapped_cross_val_score,
+			func,
 			features=features,
 			target=target,
 			cv=self.cv,
@@ -1217,6 +1228,11 @@ class TPOTBase(BaseEstimator):
 			timeout=max(int(self.max_eval_time_mins * 60), 1),
 			use_dask=self.use_dask
 		)
+		if self.mode in [Mode.NOVELTY_DETECTOR]:
+			partial_wrapped_cross_val_score = partial(
+				partial_wrapped_cross_val_score,
+				features_valid=features_valid,
+				target_valid=target_valid)
 
 		result_score_list = []
 		# Don't use parallelization if n_jobs==1
